@@ -4,6 +4,7 @@ If you new to julia then first add pakages by :-
 open cmd
 >julia
 >import Pkg
+>print("\n")
 >Pkg.add("Images")
 >Pkg.add("DataFrames")
 >Pkg.add("Printf")
