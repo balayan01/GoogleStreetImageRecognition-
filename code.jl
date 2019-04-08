@@ -1,54 +1,57 @@
-import Pkg
 using Images
-using CSV
 using DataFrames
+using CSV
+using Printf
+using Statistics
+using DecisionTree
 
 function read_data(typeData, labelsInfo, imageSize, path)
  #Intialize x matrix
  x = zeros(size(labelsInfo, 1), imageSize)
 
- for (index, idImage) in enumerate(labelsInfo["ID"])
+ for (index, idImage) in enumerate(labelsInfo[:ID])
   #Read image file
   nameFile = "$(path)/$(typeData)Resized/$(idImage).Bmp"
   img = load(nameFile)
   
   temp = Gray.(img)
-
-  #Transform image matrix to a vector and store
-  #it in data matrix
   x[index, :] = reshape(temp, 1, imageSize)
  end
  return x
 end
 
-imageSize = 400 # 20 x 20 pixel
+imageSize  = 400
 
-#Set location of data files, folders
-path = "."
+path = "street-view-getting-started-with-julia"
 
-#Read information about training data , IDs.
 labelsInfoTrain = CSV.read("$(path)/trainLabels.csv")
 
-#Read training matrix
 xTrain = read_data("train", labelsInfoTrain, imageSize, path)
 
-#Read information about test data ( IDs ).
 labelsInfoTest = CSV.read("$(path)/sampleSubmission.csv")
 
-#Read test matrix
 xTest = read_data("test", labelsInfoTest, imageSize, path)
 
-yTrain = map(x -> x[1], labelsInfoTrain["Class"])
+#Get only first character of string (convert from string to character).
+#Apply the function to each element of the column "Class"
+yTrain = Int.(map(x -> x[1], labelsInfoTrain[:Class]))
 
-#Convert from character to integer
-yTrain = int(yTrain)
+#Convert to array
+yTrain = convert(Array, yTrain)
 
-xTrain = xTrain'
-xTest = xTest'
+println("Start training")
+model = build_forest(yTrain, xTrain, 20, 100, 1.0)
+println("End training")
 
+#Get predictions for test data
+predTest = apply_forest(model, xTest)
 
+#Convert integer predictions to character
+labelsInfoTest[:Class] = Char.(predTest)
 
+#Save predictions
+CSV.write("$(path)/juliaSubmission.csv", labelsInfoTest, separator=',', append=false)
 
-CSV.write("$(path)/juliaSubmission.csv", labelsInfoTest, separator=',',append = false)
-
-println("Submission file saved in $(path)/juliaKNNSubmission.csv")
+#remove # to get accuracy
+#accuracy = nfoldCV_forest(yTrain, xTrain, 20, 100, 10, 1.0);
+#println("4 fold accuracy: $(mean(accuracy))")
